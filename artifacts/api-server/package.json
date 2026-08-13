@@ -6,6 +6,15 @@
   "scripts": {
     "dev": "export NODE_ENV=development && pnpm run build && pnpm run start",
     "build": "node ./build.mjs",
+    "build:prod": "export NODE_ENV=production && node ./build.mjs",
+    "build:staging": "export NODE_ENV=staging && node ./build.mjs",
+    "build:esm": "export BUILD_FORMAT=esm && node ./build.mjs",
+    "build:cjs": "export BUILD_FORMAT=cjs && node ./build.mjs",
+    "build:iife": "export BUILD_FORMAT=iife && node ./build.mjs",
+    "build:all": "export BUILD_FORMAT=esm,cjs,iife && node ./build.mjs",
+    "build:minified": "export MINIFY=true && node ./build.mjs",
+    "build:compressed": "export COMPRESS=true && node ./build.mjs",
+    "build:prod:all": "export NODE_ENV=production && export BUILD_FORMAT=esm,cjs,iife && export MINIFY=true && export COMPRESS=true && node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
