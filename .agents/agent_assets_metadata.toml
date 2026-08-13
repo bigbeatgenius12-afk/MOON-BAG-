@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "edfMq9kB3sFVxot4XFaGy"
+uri = "file://attached_assets/generated_images/blujo_inu_promo.jpg"
+type = "image"
+title = "BLUJO INU Promo Post"
+description = "BLUJO INU bull with red and yellow snakes holding big money bags — ready to upload!"
+
+[[outputs]]
+id = "kN0S3mXwfXvV9Z-ICeA6V"
+uri = "file://attached_assets/generated_images/moonbag_icon.png"
+type = "image"
+title = "Moon Bag App Store Icon"
+description = "Green and red app icon for Moon Bag — ready for app store submission."

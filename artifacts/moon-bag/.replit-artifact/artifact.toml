@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Moon Bag"
+description = "A crypto market and coin launcher app inspired by pump.fun. Users can browse live prices for hundreds of crypto coins, view detailed charts and stats, and launch their own custom tokens with a name, ticker, and description. Features trending coins, new launches, and a market overview."
+version = "1.0.0"
+id = "artifacts/moon-bag"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22390
+
+[services.development]
+run = "pnpm --filter @workspace/moon-bag run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/moon-bag", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/moon-bag/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22390"
+BASE_PATH = "/"

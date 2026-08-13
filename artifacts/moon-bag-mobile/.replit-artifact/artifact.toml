@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/mobile/"
+title = "Moon Bag Mobile"
+description = "The mobile companion app for Moon Bag, a simulated meme-coin trading exchange. Browse the live coin market, buy and sell launched coins, follow Zubu the Green Cat's coin launches and social feed, and track Bobo the trading bot — all against the same live backend as the website."
+version = "1.0.0"
+id = "artifacts/moon-bag-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/mobile/" ]
+localPort = 24172
+
+[services.development]
+run = "pnpm --filter @workspace/moon-bag-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/moon-bag-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/moon-bag-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "24172"
+BASE_PATH = "/mobile/"

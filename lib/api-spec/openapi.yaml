@@ -1,0 +1,1065 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Moon Bag API — crypto market viewer and coin launcher
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: market
+    description: Live crypto market data
+  - name: launched
+    description: User-launched coins
+  - name: trades
+    description: Coin trades
+  - name: Storage
+    description: Object storage upload and serving endpoints.
+paths:
+  /storage/uploads/request-url:
+    post:
+      tags: [Storage]
+      operationId: requestUploadUrl
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Presigned upload URL generated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlResponse'
+        '400':
+          description: Missing or invalid required fields.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '500':
+          description: Failed to generate upload URL.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/public-objects/{filePath}:
+    get:
+      tags: [Storage]
+      operationId: getPublicObject
+      summary: Serve a public asset from PUBLIC_OBJECT_SEARCH_PATHS
+      parameters:
+        - name: filePath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: File not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /storage/objects/{objectPath}:
+    get:
+      tags: [Storage]
+      operationId: getStorageObject
+      summary: Serve an object entity from PRIVATE_OBJECT_DIR
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Object content streamed with correct Content-Type.
+          content:
+            '*/*':
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Object not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── Live market data (CoinGecko proxy) ──────────────────────────────────────
+  /market/coins:
+    get:
+      operationId: getMarketCoins
+      tags: [market]
+      summary: Get top crypto coins with live prices
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: number
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: number
+            default: 50
+        - name: search
+          in: query
+          schema:
+            type: ["string", "null"]
+      responses:
+        "200":
+          description: List of market coins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketCoin"
+
+  /market/coins/{coinId}:
+    get:
+      operationId: getMarketCoin
+      tags: [market]
+      summary: Get details for a specific coin
+      parameters:
+        - name: coinId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Coin detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketCoinDetail"
+        "404":
+          description: Not found
+
+  /market/coins/{coinId}/chart/{days}:
+    get:
+      operationId: getMarketCoinChart
+      tags: [market]
+      summary: Get price chart data for a coin
+      parameters:
+        - name: coinId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: days
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChartData"
+
+  /market/trending:
+    get:
+      operationId: getTrendingCoins
+      tags: [market]
+      summary: Get trending coins
+      responses:
+        "200":
+          description: Trending coins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MarketCoin"
+
+  # ── User-launched coins ───────────────────────────────────────────────────
+  /launched-coins:
+    get:
+      operationId: getLaunchedCoins
+      tags: [launched]
+      summary: Get all user-launched coins
+      parameters:
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, trending, market_cap]
+            default: newest
+        - name: limit
+          in: query
+          schema:
+            type: number
+            default: 20
+        - name: ticker
+          in: query
+          description: Filter to a single coin by ticker (case-insensitive).
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Launched coins
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LaunchedCoin"
+    post:
+      operationId: createLaunchedCoin
+      tags: [launched]
+      summary: Launch a new coin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LaunchedCoinInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LaunchedCoin"
+
+  /launched-coins/stats:
+    get:
+      operationId: getLaunchedCoinStats
+      tags: [launched]
+      summary: Get overall launch platform stats
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LaunchStats"
+
+  /launched-coins/{id}:
+    get:
+      operationId: getLaunchedCoin
+      tags: [launched]
+      summary: Get a specific launched coin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Launched coin detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LaunchedCoin"
+        "404":
+          description: Not found
+
+  /launched-coins/{id}/position/{traderName}:
+    get:
+      operationId: getCoinPosition
+      tags: [trades]
+      summary: Get a trader's position in a launched coin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+        - name: traderName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trader position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CoinPosition"
+        "404":
+          description: No position found
+
+  /launched-coins/{id}/hotspot:
+    post:
+      operationId: buyCoinHotspot
+      tags: [launched-coins]
+      summary: Pay $100 in MGOAT to boost the coin app-wide for 28 days
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaidServiceInput"
+      responses:
+        "200":
+          description: Hotspot activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaidServiceResult"
+
+  /traders/{traderName}/stats:
+    get:
+      operationId: getTraderStats
+      tags: [trades]
+      summary: Get social stats for a trader
+      parameters:
+        - name: traderName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trader stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TraderStats"
+
+  /launched-coins/{id}/posts:
+    get:
+      operationId: getCoinPosts
+      tags: [launched]
+      summary: Get the coin mascot's own social feed posts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Coin posts, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CoinPost"
+
+  /traders/{traderName}/positions:
+    get:
+      operationId: getTraderPositions
+      tags: [trades]
+      summary: Get all coin positions held by a trader
+      parameters:
+        - name: traderName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trader positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TraderPosition"
+
+  /traders/{traderName}/trades:
+    get:
+      operationId: getTraderTrades
+      tags: [trades]
+      summary: Get recent trades made by a trader across all coins
+      parameters:
+        - name: traderName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trader trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TraderTrade"
+
+  /launched-coins/{id}/claim:
+    post:
+      operationId: claimCoinRewards
+      tags: [trades]
+      summary: Claim locked reflection rewards (only when market cap >= unlock threshold)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimInput"
+      responses:
+        "200":
+          description: Claimed amount
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClaimResult"
+        "400":
+          description: Not yet unlocked or nothing to claim
+
+  /launched-coins/{id}/trades:
+    get:
+      operationId: getCoinTrades
+      tags: [trades]
+      summary: Get trades for a launched coin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Trades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Trade"
+    post:
+      operationId: createCoinTrade
+      tags: [trades]
+      summary: Buy or sell a launched coin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TradeInput"
+      responses:
+        "201":
+          description: Trade executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Trade"
+
+  /launched-coins/{id}/orders/{traderName}:
+    get:
+      operationId: getCoinOrders
+      tags: [trades]
+      summary: List a trader's buy triggers for a coin
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+        - name: traderName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PendingOrder"
+
+  /launched-coins/{id}/orders:
+    post:
+      operationId: createCoinOrder
+      tags: [trades]
+      summary: Create a buy trigger — buys with MGOAT when the coin's market cap reaches the target
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PendingOrderInput"
+      responses:
+        "201":
+          description: Order created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingOrder"
+
+  /orders/{orderId}/cancel:
+    post:
+      operationId: cancelCoinOrder
+      tags: [trades]
+      summary: Cancel an open buy trigger
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CancelOrderInput"
+      responses:
+        "200":
+          description: Cancelled order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingOrder"
+
+components:
+  schemas:
+    UploadUrlRequest:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        size:
+          type: number
+          minimum: 1
+        contentType:
+          type: string
+          minLength: 1
+    UploadUrlResponse:
+      type: object
+      required: [uploadURL, objectPath]
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        metadata:
+          $ref: '#/components/schemas/UploadUrlRequest'
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    MarketCoin:
+      type: object
+      required:
+        - id
+        - symbol
+        - name
+        - current_price
+        - market_cap
+        - price_change_percentage_24h
+        - total_volume
+        - image
+        - market_cap_rank
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        current_price:
+          type: number
+        market_cap:
+          type: number
+        market_cap_rank:
+          type: ["number", "null"]
+        price_change_percentage_24h:
+          type: ["number", "null"]
+        price_change_percentage_7d:
+          type: ["number", "null"]
+        total_volume:
+          type: number
+        circulating_supply:
+          type: ["number", "null"]
+        ath:
+          type: ["number", "null"]
+
+    MarketCoinDetail:
+      type: object
+      required:
+        - id
+        - symbol
+        - name
+        - image
+        - current_price
+        - market_cap
+        - total_volume
+        - price_change_percentage_24h
+        - description
+        - market_cap_rank
+      properties:
+        id:
+          type: string
+        symbol:
+          type: string
+        name:
+          type: string
+        image:
+          type: string
+        current_price:
+          type: number
+        market_cap:
+          type: number
+        market_cap_rank:
+          type: ["number", "null"]
+        total_volume:
+          type: number
+        price_change_percentage_24h:
+          type: ["number", "null"]
+        price_change_percentage_7d:
+          type: ["number", "null"]
+        price_change_percentage_30d:
+          type: ["number", "null"]
+        circulating_supply:
+          type: ["number", "null"]
+        total_supply:
+          type: ["number", "null"]
+        max_supply:
+          type: ["number", "null"]
+        ath:
+          type: ["number", "null"]
+        atl:
+          type: ["number", "null"]
+        description:
+          type: string
+        homepage:
+          type: ["string", "null"]
+        twitter_handle:
+          type: ["string", "null"]
+
+    ChartData:
+      type: object
+      required:
+        - prices
+      properties:
+        prices:
+          type: array
+          items:
+            type: array
+            items:
+              type: number
+
+    LaunchedCoin:
+      type: object
+      required:
+        - id
+        - name
+        - ticker
+        - description
+        - creator_name
+        - initial_supply
+        - price
+        - market_cap
+        - volume_24h
+        - holders
+        - created_at
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        ticker:
+          type: string
+        description:
+          type: string
+        image_url:
+          type: ["string", "null"]
+        creator_name:
+          type: string
+        website:
+          type: ["string", "null"]
+        twitter:
+          type: ["string", "null"]
+        telegram:
+          type: ["string", "null"]
+        contract_address:
+          type: ["string", "null"]
+        blockchain:
+          type: ["string", "null"]
+        launchpad:
+          type: ["string", "null"]
+        liquidity:
+          type: ["number", "null"]
+        initial_supply:
+          type: number
+        price:
+          type: number
+        market_cap:
+          type: number
+        volume_24h:
+          type: number
+        holders:
+          type: number
+        buys_count:
+          type: number
+        price_change_24h:
+          type: number
+        reward_pool:
+          type: number
+        total_burned:
+          type: number
+        is_rug_proof:
+          type: boolean
+        market_cap_unlock:
+          type: ["number", "null"]
+        hotspot_until:
+          type: ["string", "null"]
+        created_at:
+          type: string
+
+    LaunchedCoinInput:
+      type: object
+      required:
+        - name
+        - ticker
+        - description
+        - creator_name
+        - initial_supply
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+        ticker:
+          type: string
+          minLength: 1
+          maxLength: 10
+        description:
+          type: string
+          minLength: 1
+        image_url:
+          type: ["string", "null"]
+        creator_name:
+          type: string
+          minLength: 1
+        website:
+          type: ["string", "null"]
+        twitter:
+          type: ["string", "null"]
+        telegram:
+          type: ["string", "null"]
+        initial_supply:
+          type: number
+
+    PendingOrder:
+      type: object
+      required:
+        - id
+        - coin_id
+        - trader_name
+        - mgoat_amount
+        - target_market_cap
+        - status
+        - created_at
+      properties:
+        id:
+          type: number
+        coin_id:
+          type: number
+        trader_name:
+          type: string
+        mgoat_amount:
+          type: number
+        target_market_cap:
+          type: number
+        status:
+          type: string
+        fail_reason:
+          type: ["string", "null"]
+        created_at:
+          type: string
+        executed_at:
+          type: ["string", "null"]
+
+    CancelOrderInput:
+      type: object
+      required: [trader_name]
+      properties:
+        trader_name:
+          type: string
+          minLength: 1
+
+    PendingOrderInput:
+      type: object
+      required: [trader_name, mgoat_amount, target_market_cap]
+      properties:
+        trader_name:
+          type: string
+          minLength: 1
+        mgoat_amount:
+          type: number
+          minimum: 1
+        target_market_cap:
+          type: number
+          minimum: 1
+
+    LaunchStats:
+      type: object
+      required:
+        - total_coins_launched
+        - total_volume
+        - total_traders
+        - coins_launched_today
+      properties:
+        total_coins_launched:
+          type: number
+        total_volume:
+          type: number
+        total_traders:
+          type: number
+        coins_launched_today:
+          type: number
+
+    Trade:
+      type: object
+      required:
+        - id
+        - coin_id
+        - trader_name
+        - type
+        - amount_usd
+        - tokens
+        - price_at_trade
+        - created_at
+      properties:
+        id:
+          type: number
+        coin_id:
+          type: number
+        trader_name:
+          type: string
+        type:
+          type: string
+          enum: [buy, sell]
+        amount_usd:
+          type: number
+        tokens:
+          type: number
+        price_at_trade:
+          type: number
+        created_at:
+          type: string
+
+    CoinPosition:
+      type: object
+      required:
+        - trader_name
+        - coin_id
+        - total_invested
+        - tokens_held
+        - current_value
+        - profit_locked
+        - locked_rewards
+        - pending_rewards
+        - unlocked
+      properties:
+        trader_name:
+          type: string
+        coin_id:
+          type: number
+        total_invested:
+          type: number
+        tokens_held:
+          type: number
+        current_value:
+          type: number
+        profit_locked:
+          type: number
+        locked_rewards:
+          type: number
+        pending_rewards:
+          type: number
+        unlocked:
+          type: boolean
+
+    PaidServiceInput:
+      type: object
+      required: [trader_name]
+      properties:
+        trader_name:
+          type: string
+
+    PaidServiceResult:
+      type: object
+      required: [success, mgoat_spent_usd]
+      properties:
+        success:
+          type: boolean
+        mgoat_spent_usd:
+          type: number
+        image_url:
+          type: ["string", "null"]
+        hotspot_until:
+          type: ["string", "null"]
+
+    TraderStats:
+      type: object
+      required: [trader_name, followers]
+      properties:
+        trader_name:
+          type: string
+        followers:
+          type: number
+
+    CoinPost:
+      type: object
+      required: [id, coin_id, author, content, created_at]
+      properties:
+        id:
+          type: number
+        coin_id:
+          type: number
+        author:
+          type: string
+        content:
+          type: string
+        created_at:
+          type: string
+
+    TraderPosition:
+      type: object
+      required: [coin_id, coin_name, ticker, tokens_held, total_invested, current_value, profit]
+      properties:
+        coin_id:
+          type: number
+        coin_name:
+          type: string
+        ticker:
+          type: string
+        image_url:
+          type: ["string", "null"]
+        tokens_held:
+          type: number
+        total_invested:
+          type: number
+        current_value:
+          type: number
+        profit:
+          type: number
+
+    TraderTrade:
+      type: object
+      required: [id, coin_id, coin_name, ticker, type, amount_usd, tokens, created_at]
+      properties:
+        id:
+          type: number
+        coin_id:
+          type: number
+        coin_name:
+          type: string
+        ticker:
+          type: string
+        image_url:
+          type: ["string", "null"]
+        type:
+          type: string
+          enum: [buy, sell]
+        amount_usd:
+          type: number
+        tokens:
+          type: number
+        created_at:
+          type: string
+
+    ClaimInput:
+      type: object
+      required: [trader_name]
+      properties:
+        trader_name:
+          type: string
+          minLength: 1
+
+    ClaimResult:
+      type: object
+      required: [claimed, message]
+      properties:
+        claimed:
+          type: number
+        message:
+          type: string
+
+    TradeInput:
+      type: object
+      required:
+        - trader_name
+        - type
+        - amount_usd
+      properties:
+        trader_name:
+          type: string
+          minLength: 1
+        type:
+          type: string
+          enum: [buy, sell]
+        amount_usd:
+          type: number

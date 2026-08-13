@@ -1,0 +1,1 @@
+- [Moon Bag simulation design](moon-bag-design.md) — no auth by design; swaps are frontend-orchestrated; sell validation is intentional, keep it.
