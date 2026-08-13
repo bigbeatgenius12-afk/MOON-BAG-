@@ -6,12 +6,16 @@
   "build": {
     "production": {
       "autoIncrement": true,
+      "node": "24.13.0",
+      "pnpm": "10.26.1",
       "android": {
         "buildType": "app-bundle"
       }
     },
     "preview": {
       "distribution": "internal",
+      "node": "24.13.0",
+      "pnpm": "10.26.1",
       "android": {
         "buildType": "apk"
       }
