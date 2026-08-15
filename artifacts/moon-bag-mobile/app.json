@@ -1,7 +1,13 @@
 {
   "expo": {
     "name": "Moon Bag",
-    "slug": "moon-bag-mobile",
+    "slug": "moon-bag-28-voawxzz3l1wnq-inljr8",
+    "owner": "moon-bag-28",
+    "extra": {
+      "eas": {
+        "projectId": "f4753546-5426-4c13-a8d9-6872340a2310"
+      }
+    },
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
