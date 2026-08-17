@@ -23,7 +23,7 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "com.moonbag.app",
+      "package": "com.moonbagx",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
